@@ -5,6 +5,10 @@ import jakarta.validation.constraints.Size
 
 data class HaikuRequest(
     @field:NotBlank
-    @field:Size(max = 500)
-    val prompt: String
+    @field:Size(max = 200)
+    val command: String,
+
+    @field:NotBlank
+    @field:Size(max = 200)
+    val theme: String,
 )
