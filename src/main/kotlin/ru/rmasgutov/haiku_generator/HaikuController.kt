@@ -14,5 +14,5 @@ class HaikuController(private val haikuService: HaikuService) {
 
     @PostMapping
     fun generate(@Valid @RequestBody request: HaikuRequest): HaikuResponse =
-        HaikuResponse(haiku = haikuService.generate(request.command, request.theme))
+        HaikuResponse(lines = haikuService.generate(request.command, request.theme))
 }

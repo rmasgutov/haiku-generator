@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import ru.rmasgutov.haiku_generator.dto.HaikuLine
 
 @WebMvcTest(HaikuController::class)
 class HaikuControllerTest {
@@ -23,8 +24,12 @@ class HaikuControllerTest {
 
     @Test
     fun `POST api-haiku with valid body returns 200 and haiku json`() {
-        val expectedHaiku = "Leaves fall gently down\nAutumn rain wets the cold earth\nSilence speaks the truth"
-        every { haikuService.generate("Write", "autumn rain") } returns expectedHaiku
+        val expectedLines = listOf(
+            HaikuLine("Листья тихо льнут", "Образ покорности"),
+            HaikuLine("к мокрым камням у тропы —", "Земля как свидетель"),
+            HaikuLine("дождь смывает день", "Дождь как очищение"),
+        )
+        every { haikuService.generate("Write", "autumn rain") } returns expectedLines
 
         mockMvc.perform(
             post("/api/haiku")
@@ -32,7 +37,9 @@ class HaikuControllerTest {
                 .content("""{"command":"Write","theme":"autumn rain"}""")
         )
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.haiku").value(expectedHaiku))
+            .andExpect(jsonPath("$.lines").isArray)
+            .andExpect(jsonPath("$.lines[0].line").value("Листья тихо льнут"))
+            .andExpect(jsonPath("$.lines[0].meaning").value("Образ покорности"))
 
         verify(exactly = 1) { haikuService.generate("Write", "autumn rain") }
     }
