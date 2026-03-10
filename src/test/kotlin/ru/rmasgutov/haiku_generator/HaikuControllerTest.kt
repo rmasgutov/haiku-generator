@@ -22,14 +22,15 @@ class HaikuControllerTest {
     @MockkBean
     private lateinit var haikuService: HaikuService
 
+    private val expectedLines = listOf(
+        HaikuLine("Листья тихо льнут", "Образ покорности"),
+        HaikuLine("к мокрым камням у тропы —", "Земля как свидетель"),
+        HaikuLine("дождь смывает день", "Дождь как очищение"),
+    )
+
     @Test
-    fun `POST api-haiku with valid body returns 200 and haiku json`() {
-        val expectedLines = listOf(
-            HaikuLine("Листья тихо льнут", "Образ покорности"),
-            HaikuLine("к мокрым камням у тропы —", "Земля как свидетель"),
-            HaikuLine("дождь смывает день", "Дождь как очищение"),
-        )
-        every { haikuService.generate("Write", "autumn rain") } returns expectedLines
+    fun `POST api-haiku without header returns 200 with generated conversationId`() {
+        every { haikuService.generate("Write", "autumn rain", any()) } returns expectedLines
 
         mockMvc.perform(
             post("/api/haiku")
@@ -40,8 +41,41 @@ class HaikuControllerTest {
             .andExpect(jsonPath("$.lines").isArray)
             .andExpect(jsonPath("$.lines[0].line").value("Листья тихо льнут"))
             .andExpect(jsonPath("$.lines[0].meaning").value("Образ покорности"))
+            .andExpect(jsonPath("$.conversationId").exists())
 
-        verify(exactly = 1) { haikuService.generate("Write", "autumn rain") }
+        verify(exactly = 1) { haikuService.generate("Write", "autumn rain", any()) }
+    }
+
+    @Test
+    fun `POST api-haiku with X-Conversation-Id header uses it and returns it in response`() {
+        val conversationId = "my-session-123"
+        every { haikuService.generate("Write", "autumn rain", conversationId) } returns expectedLines
+
+        mockMvc.perform(
+            post("/api/haiku")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Conversation-Id", conversationId)
+                .content("""{"command":"Write","theme":"autumn rain"}""")
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.conversationId").value(conversationId))
+
+        verify(exactly = 1) { haikuService.generate("Write", "autumn rain", conversationId) }
+    }
+
+    @Test
+    fun `POST api-haiku with X-Conversation-Id longer than 128 chars returns 400`() {
+        val longId = "a".repeat(129)
+
+        mockMvc.perform(
+            post("/api/haiku")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Conversation-Id", longId)
+                .content("""{"command":"Write","theme":"autumn rain"}""")
+        )
+            .andExpect(status().isBadRequest)
+
+        verify(exactly = 0) { haikuService.generate(any(), any(), any()) }
     }
 
     @Test
@@ -53,7 +87,7 @@ class HaikuControllerTest {
         )
             .andExpect(status().isBadRequest)
 
-        verify(exactly = 0) { haikuService.generate(any(), any()) }
+        verify(exactly = 0) { haikuService.generate(any(), any(), any()) }
     }
 
     @Test
@@ -65,7 +99,7 @@ class HaikuControllerTest {
         )
             .andExpect(status().isBadRequest)
 
-        verify(exactly = 0) { haikuService.generate(any(), any()) }
+        verify(exactly = 0) { haikuService.generate(any(), any(), any()) }
     }
 
     @Test
@@ -79,7 +113,7 @@ class HaikuControllerTest {
         )
             .andExpect(status().isBadRequest)
 
-        verify(exactly = 0) { haikuService.generate(any(), any()) }
+        verify(exactly = 0) { haikuService.generate(any(), any(), any()) }
     }
 
     @Test
@@ -93,7 +127,7 @@ class HaikuControllerTest {
         )
             .andExpect(status().isBadRequest)
 
-        verify(exactly = 0) { haikuService.generate(any(), any()) }
+        verify(exactly = 0) { haikuService.generate(any(), any(), any()) }
     }
 
     @Test
@@ -105,7 +139,7 @@ class HaikuControllerTest {
         )
             .andExpect(status().isBadRequest)
 
-        verify(exactly = 0) { haikuService.generate(any(), any()) }
+        verify(exactly = 0) { haikuService.generate(any(), any(), any()) }
     }
 
     @Test
@@ -116,6 +150,6 @@ class HaikuControllerTest {
         )
             .andExpect(status().isBadRequest)
 
-        verify(exactly = 0) { haikuService.generate(any(), any()) }
+        verify(exactly = 0) { haikuService.generate(any(), any(), any()) }
     }
 }
